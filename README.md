@@ -2,7 +2,6 @@
 
 A simple Streamlit app that has a chatbot built on top of Llama 3.1 8B Instruct and then compares responses from the chatbot to responses obtained by doing RAG, these responses are stored in Neural Bridge dataset.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chatbot-template.streamlit.app/)
 
 ### How to run it on your own machine
 
