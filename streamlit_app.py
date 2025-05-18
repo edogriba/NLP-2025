@@ -3,8 +3,8 @@ import requests
 import random
 import json
 
-st.title("Comparison between Llama 3.1 8B and RAG system - Neural Bridge 12000 Edition (AwanLLM)")
-st.write("This chatbot compares responses from Meta's Llama 3.1 8B Instruct model on AwanLLM API and ground truth from Neural Bridge 12000 dataset.")
+st.title("Comparison between Llama 3.1 8B and RAG system")
+st.write("This chatbot compares responses from Meta's Llama 3.1 8B Instruct model on AwanLLM API and respoonse got doing RAG stored in the Neural Bridge 12000 dataset.")
 
 api_token = st.secrets["awanllm"]["api_token"]
 api_url = "https://api.awanllm.com/v1/chat/completions"
