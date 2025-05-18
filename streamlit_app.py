@@ -1,56 +1,52 @@
 import streamlit as st
-from openai import OpenAI
+import requests
 
-# Show title and description.
-st.title("💬 Chatbot")
+st.title("💬 Llama 3.1 Chatbot on Hugging Face (Token Embedded)")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+    "This chatbot uses Meta's Llama 3.1 8B Instruct model hosted on Hugging Face's Inference API. "
+    "The API token is pre-configured in the code."
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# Hardcoded API Token (Replace with your actual token)
+api_token = st.secrets["huggingface"]["api_token"]
+model_id = "meta-llama/Llama-3.1-8B-Instruct"
+api_url = f"https://api-inference.huggingface.co/models/{model_id}"
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+headers = {"Authorization": f"Bearer {api_token}"}
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+# Initialize session state
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# Display previous messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+# Chat input
+if prompt := st.chat_input("What is up?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    # Build chat history in Llama format
+    chat_history = ""
+    for msg in st.session_state.messages:
+        role = "User" if msg["role"] == "user" else "Assistant"
+        chat_history += f"{role}: {msg['content']}\n"
+    chat_history += "Assistant:"
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+    # Call Hugging Face Inference API
+    payload = {"inputs": chat_history, "parameters": {"max_new_tokens": 512, "temperature": 0.7}}
+    response = requests.post(api_url, headers=headers, json=payload)
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
+    if response.status_code == 200:
+        result = response.json()
+        generated_text = result[0]["generated_text"]
+        assistant_reply = generated_text.split("Assistant:")[-1].strip()
+
         with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+            st.markdown(assistant_reply)
+        st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+    else:
+        st.error(f"Error: {response.status_code} - {response.text}")
